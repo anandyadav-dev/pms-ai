@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMS AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-secondary: #6B7280;
+            --chat-user-bg: #4F46E5;
+            --chat-user-text: #FFFFFF;
+            --chat-ai-bg: #E5E7EB;
+            --chat-ai-text: #1F2937;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h2 {
+            color: var(--text-main);
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* Prescription Section */
+        .upload-area {
+            border: 2px dashed #D1D5DB;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        #prescriptionResult {
+            background: #F9FAFB;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #E5E7EB;
+        }
+
+        /* Voice Assistant Section */
+        #conversation {
+            flex-grow: 1;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #F9FAFB;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--chat-user-bg);
+            color: var(--chat-user-text);
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background-color: var(--chat-ai-bg);
+            color: var(--chat-ai-text);
+            border-bottom-left-radius: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #9CA3AF;
+            cursor: not-allowed;
+        }
+
+        button.stop {
+            background-color: #EF4444;
+        }
+        
+        button.stop:hover {
+            background-color: #DC2626;
+        }
+
+        .status {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+        
+        /* Markdown Styles in Prescription */
+        #prescriptionResult strong {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PMS AI Assistant</h1>
+            <div class="subtitle">Your Personal Medical & Prescription Assistant</div>
+        </header>
+
+        <div class="grid">
+            <!-- Prescription Card -->
+            <div class="card">
+                <h2>📋 Prescription Analysis</h2>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Upload a prescription image to get a detailed summary.</p>
+                
+                <div class="upload-area">
+                    <label for="prescriptionFile" class="file-label">
+                        <span id="fileName">Click to upload image</span>
+                    </label>
+                    <input type="file" id="prescriptionFile" accept="image/*" onchange="updateFileName()">
+                </div>
+                
+                <button onclick="uploadPrescription()" style="width: 100%">Analyze Prescription</button>
+                <div id="prescriptionResult">Analysis result will appear here...</div>
+            </div>
+
+            <!-- Voice Assistant Card -->
+            <div class="card">
+                <h2>🎙️ Voice Assistant</h2>
+                <div id="conversation">
+                    <div class="message ai">Hello! I am your medical assistant. You can speak to me in Hindi or English. How can I help you?</div>
+                </div>
+                
+                <div class="controls">
+                    <button id="startVoice" onclick="startVoice()">Start</button>
+                    <button id="stopVoice" onclick="stopVoice()" class="stop" disabled>Stop</button>
+                    <span id="voiceStatus" class="status">Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateFileName() {
+            const input = document.getElementById('prescriptionFile');
+            const label = document.getElementById('fileName');
+            if (input.files && input.files[0]) {
+                label.innerText = input.files[0].name;
+            }
+        }
+
+        // --- Prescription Analysis ---
+        async function uploadPrescription() {
+            const fileInput = document.getElementById('prescriptionFile');
+            const resultDiv = document.getElementById('prescriptionResult');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file first.');
+                return;
+            }
+
+            resultDiv.innerHTML = '<span style="color: var(--text-secondary)">Analyzing... please wait...</span>';
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/analyze-prescription', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.error) {
+                    resultDiv.innerText = 'Error: ' + data.error;
+                } else {
+                    // Simple markdown to HTML conversion for bold text
+                    let formatted = data.analysis
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+                    resultDiv.innerHTML = formatted;
+                }
+            } catch (error) {
+                resultDiv.innerText = 'Error: ' + error.message;
+            }
+        }
+
+        // --- Voice Assistant ---
+        let ws;
+        let recognition;
+        let isListening = false;
+        let isAiSpeaking = false;
+        
+        const conversationDiv = document.getElementById('conversation');
+        const statusSpan = document.getElementById('voiceStatus');
+
+        function appendMessage(sender, text) {
+            const div = document.createElement('div');
+            div.className = `message ${sender.toLowerCase()}`;
+            div.innerText = text;
+            conversationDiv.appendChild(div);
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                isAiSpeaking = true;
+                
+                // Stop listening while speaking
+                if (recognition) {
+                    try {
+                        recognition.stop();
+                        console.log('Recognition stopped for AI speech');
+                    } catch(e) {
+                        console.log('Error stopping recognition:', e);
+                    }
+                }
+
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Auto-detect language (Hindi vs English)
+                const hasHindi = /[\u0900-\u097F]/.test(text);
+                utterance.lang = hasHindi ? 'hi-IN' : 'en-US';
+
+                utterance.onend = () => {
+                    isAiSpeaking = false;
+                    // Resume listening with a small delay
+                    setTimeout(() => {
+                        if (isListening && !isAiSpeaking && recognition) {
+                            try {
+                                recognition.start();
+                                console.log('Recognition restarted');
+                                statusSpan.innerText = 'Listening...';
+                            } catch (e) {
+                                console.log('Recognition start error:', e);
+                            }
+                        }
+                    }, 500); 
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function startVoice() {
+            if (isListening) return;
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/voice-assistant`);
+
+            ws.onopen = () => {
+                statusSpan.innerText = 'Connecting...';
+                document.getElementById('startVoice').disabled = true;
+                document.getElementById('stopVoice').disabled = false;
+                startRecognition();
+            };
+
+            ws.onmessage = (event) => {
+                const text = event.data;
+                appendMessage('AI', text);
+                speak(text);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                statusSpan.innerText = 'Connection Error';
+            };
+
+            ws.onclose = () => {
+                stopVoice();
+                statusSpan.innerText = 'Disconnected';
+            };
+        }
+
+        function startRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Speech recognition is not supported in this browser. Try Chrome.');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'hi-IN'; // Default to Hindi
+
+            recognition.onstart = () => {
+                isListening = true;
+                statusSpan.innerText = 'Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                if (isAiSpeaking) return;
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        const transcript = event.results[i][0].transcript.trim();
+                        if (transcript) {
+                            appendMessage('User', transcript);
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(transcript);
+                            }
+                        }
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                if (event.error === 'no-speech') {
+                    // Ignore no-speech errors, just stay listening
+                } else {
+                    statusSpan.innerText = 'Error: ' + event.error;
+                }
+            };
+
+            recognition.onend = () => {
+                if (isListening && !isAiSpeaking && ws && ws.readyState === WebSocket.OPEN) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log("Already started");
+                    }
+                }
+            };
+
+            recognition.start();
+        }
+
+        function stopVoice() {
+            isListening = false;
+            document.getElementById('startVoice').disabled = false;
+            document.getElementById('stopVoice').disabled = true;
+            statusSpan.innerText = 'Stopped';
+            
+            if (recognition) {
+                recognition.stop();
+            }
+            if (ws) {
+                ws.close();
+            }
+        }
+    </script>
+</body>
+</html>
