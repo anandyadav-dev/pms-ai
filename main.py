@@ -1,8 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from gemini_client import GeminiClient
+from openai_client import OpenAIClient
 import os
 
 app = FastAPI(title="PMS AI - Prescription & Voice Assistant")
@@ -16,43 +15,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Gemini Client
-# We initialize it lazily or here if API key is present. 
-# To avoid crash on start if key is missing, we can wrap it.
+# Initialize OpenAI Client safely
 try:
-    gemini_client = GeminiClient()
+    ai_client = OpenAIClient()
 except Exception as e:
-    print(f"Warning: Gemini Client failed to initialize. Check API Key. {e}")
-    gemini_client = None
+    print(f"Warning: AI Client failed to initialize. Check API Key. {e}")
+    ai_client = None
+
 
 @app.post("/analyze-prescription")
 async def analyze_prescription(file: UploadFile = File(...)):
-    if not gemini_client:
-        return JSONResponse(status_code=500, content={"error": "Gemini Client not initialized"})
-    
+    if not ai_client:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "AI Client not initialized"}
+        )
+
     try:
         contents = await file.read()
-        analysis = gemini_client.analyze_prescription(contents)
+        analysis = ai_client.analyze_prescription(contents)
         return {"analysis": analysis}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+
 @app.websocket("/ws/voice-assistant")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    if not gemini_client:
-        await websocket.send_text("Error: Gemini Client not initialized. Please check server logs.")
+
+    if not ai_client:
+        await websocket.send_text("Error: AI Client not initialized. Please check server logs.")
         await websocket.close()
         return
 
     try:
         while True:
             data = await websocket.receive_text()
-            # process the received text (transcription)
-            response_text = gemini_client.chat_response(data)
+            response_text = ai_client.chat_response(data)
             await websocket.send_text(response_text)
+
     except WebSocketDisconnect:
         print("Client disconnected")
+
     except Exception as e:
         print(f"WebSocket Error: {e}")
         try:
@@ -60,12 +64,14 @@ async def websocket_endpoint(websocket: WebSocket):
         except:
             pass
 
-# Serve a simple HTML frontend
+
+# Serve frontend
 @app.get("/")
 async def get():
     with open("templates/index.html", "r", encoding="utf-8") as f:
         html_content = f.read()
     return HTMLResponse(content=html_content, status_code=200)
+
 
 if __name__ == "__main__":
     import uvicorn
