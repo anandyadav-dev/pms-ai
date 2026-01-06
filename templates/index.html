@@ -3,33 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMS AI Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Jarvis - Medical AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg-color: #F3F4F6;
-            --card-bg: #FFFFFF;
-            --text-main: #1F2937;
-            --text-secondary: #6B7280;
-            --chat-user-bg: #4F46E5;
-            --chat-user-text: #FFFFFF;
-            --chat-ai-bg: #E5E7EB;
-            --chat-ai-text: #1F2937;
+            --primary-color: #00f2ff; /* Cyan/Neon Blue */
+            --secondary-color: #0088ff;
+            --bg-color: #0a0a12; /* Very dark blue/black */
+            --card-bg: #11111e;
+            --text-main: #e0e0e0;
+            --text-secondary: #a0a0b0;
+            --chat-user-bg: #0055ff;
+            --chat-user-text: #ffffff;
+            --chat-ai-bg: #1f1f2e;
+            --chat-ai-text: #e0e0e0;
+            --accent-glow: 0 0 15px rgba(0, 242, 255, 0.5);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
             padding: 0;
-            line-height: 1.5;
+            line-height: 1.6;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0a0a12 100%);
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -37,28 +40,34 @@
         header {
             text-align: center;
             margin-bottom: 40px;
-            padding: 20px 0;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
         }
 
         h1 {
             color: var(--primary-color);
-            font-size: 2.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
             margin: 0;
-            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: var(--accent-glow);
         }
 
         .subtitle {
             color: var(--text-secondary);
-            margin-top: 5px;
+            margin-top: 10px;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
         }
 
         .grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
+            gap: 30px;
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 992px) {
             .grid {
                 grid-template-columns: 1fr 1fr;
             }
@@ -66,34 +75,50 @@
 
         .card {
             background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 30px;
             display: flex;
             flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 242, 255, 0.1);
+            border-color: rgba(0, 242, 255, 0.2);
         }
 
         h2 {
-            color: var(--text-main);
+            color: var(--primary-color);
             margin-top: 0;
-            font-size: 1.25rem;
-            border-bottom: 2px solid var(--bg-color);
-            padding-bottom: 12px;
-            margin-bottom: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         /* Prescription Section */
         .upload-area {
-            border: 2px dashed #D1D5DB;
-            border-radius: 8px;
-            padding: 20px;
+            border: 2px dashed rgba(0, 242, 255, 0.3);
+            border-radius: 12px;
+            padding: 40px 20px;
             text-align: center;
-            margin-bottom: 15px;
-            transition: border-color 0.3s;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            background: rgba(0, 242, 255, 0.02);
+            cursor: pointer;
         }
 
         .upload-area:hover {
             border-color: var(--primary-color);
+            background: rgba(0, 242, 255, 0.05);
+            box-shadow: inset 0 0 20px rgba(0, 242, 255, 0.1);
         }
 
         input[type="file"] {
@@ -104,140 +129,233 @@
             cursor: pointer;
             color: var(--primary-color);
             font-weight: 500;
+            font-size: 1.1rem;
+            display: block;
+        }
+
+        .file-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--text-secondary);
         }
 
         #prescriptionResult {
-            background: #F9FAFB;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
             white-space: pre-wrap;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-main);
             max-height: 400px;
             overflow-y: auto;
-            border: 1px solid #E5E7EB;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         /* Voice Assistant Section */
         #conversation {
             flex-grow: 1;
-            height: 400px;
+            height: 450px;
             overflow-y: auto;
-            padding: 15px;
-            background: #F9FAFB;
-            border-radius: 8px;
-            border: 1px solid #E5E7EB;
-            margin-bottom: 15px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
 
         .message {
-            max-width: 80%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 0.95rem;
+            max-width: 85%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 1rem;
             position: relative;
             word-wrap: break-word;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .message.user {
             align-self: flex-end;
-            background-color: var(--chat-user-bg);
+            background: linear-gradient(135deg, var(--chat-user-bg), var(--secondary-color));
             color: var(--chat-user-text);
-            border-bottom-right-radius: 2px;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 85, 255, 0.3);
         }
 
         .message.ai {
             align-self: flex-start;
             background-color: var(--chat-ai-bg);
             color: var(--chat-ai-text);
-            border-bottom-left-radius: 2px;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .controls {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 500;
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
         }
 
         button:hover {
-            background-color: var(--primary-hover);
+            background: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
         }
 
         button:disabled {
-            background-color: #9CA3AF;
+            border-color: var(--text-secondary);
+            color: var(--text-secondary);
             cursor: not-allowed;
+            background: transparent;
+            box-shadow: none;
         }
 
         button.stop {
-            background-color: #EF4444;
+            border-color: #ff3333;
+            color: #ff3333;
         }
         
         button.stop:hover {
-            background-color: #DC2626;
+            background: #ff3333;
+            color: white;
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.4);
         }
 
         .status {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--primary-color);
             margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pulse-circle {
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 rgba(0, 242, 255, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .pulse-circle.inactive {
+            background-color: var(--text-secondary);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(0, 242, 255, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 242, 255, 0);
+            }
         }
         
         /* Markdown Styles in Prescription */
         #prescriptionResult strong {
             color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 242, 255, 0.4);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>PMS AI Assistant</h1>
-            <div class="subtitle">Your Personal Medical & Prescription Assistant</div>
+            <h1>PMS - JARVIS <span style="font-size: 1.5rem; color: var(--text-secondary); vertical-align: middle;">AI</span></h1>
+            <div class="subtitle">Advanced Medical Diagnostic & Assistant System</div>
         </header>
 
         <div class="grid">
             <!-- Prescription Card -->
             <div class="card">
-                <h2>📋 Prescription Analysis</h2>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Upload a prescription image to get a detailed summary.</p>
+                <h2>
+                    <span style="font-size: 1.5rem;"></span> 
+                    Analysis Protocol
+                </h2>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                    Upload medical documents for advanced analysis.
+                </p>
                 
-                <div class="upload-area">
+                <div class="upload-area" onclick="document.getElementById('prescriptionFile').click()">
+                    <span class="file-icon"></span>
                     <label for="prescriptionFile" class="file-label">
-                        <span id="fileName">Click to upload image</span>
+                        <span id="fileName">Select Document Image</span>
                     </label>
                     <input type="file" id="prescriptionFile" accept="image/*" onchange="updateFileName()">
                 </div>
                 
-                <button onclick="uploadPrescription()" style="width: 100%">Analyze Prescription</button>
-                <div id="prescriptionResult">Analysis result will appear here...</div>
+                <button onclick="uploadPrescription()" style="width: 100%">Initiate Analysis</button>
+                <div id="prescriptionResult">Waiting for input data...</div>
             </div>
 
             <!-- Voice Assistant Card -->
             <div class="card">
-                <h2>🎙️ Voice Assistant</h2>
+                <h2>
+                    <span style="font-size: 1.5rem;"></span> 
+                    Voice Interface
+                </h2>
                 <div id="conversation">
-                    <div class="message ai">Hello! I am your medical assistant. You can speak to me in Hindi or English. How can I help you?</div>
+                    <div class="message ai">System Online. Say "Hey Jarvis" to activate me. I am ready to assist with medical queries.</div>
                 </div>
                 
                 <div class="controls">
-                    <button id="startVoice" onclick="startVoice()">Start</button>
-                    <button id="stopVoice" onclick="stopVoice()" class="stop" disabled>Stop</button>
-                    <span id="voiceStatus" class="status">Ready</span>
+                    <button id="startVoice" onclick="startVoice()">Initialize</button>
+                    <button id="stopVoice" onclick="stopVoice()" class="stop" disabled>Terminate</button>
+                    <span id="voiceStatus" class="status">
+                        <span id="pulseIndicator" class="pulse-circle inactive"></span>
+                        <span id="statusText">Offline</span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -262,7 +380,7 @@
                 return;
             }
 
-            resultDiv.innerHTML = '<span style="color: var(--text-secondary)">Analyzing... please wait...</span>';
+            resultDiv.innerHTML = '<span style="color: var(--primary-color)">Processing data...</span>';
             
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
@@ -276,7 +394,7 @@
                 if (data.error) {
                     resultDiv.innerText = 'Error: ' + data.error;
                 } else {
-                    // Simple markdown to HTML conversion for bold text
+                    // Simple markdown to HTML conversion
                     let formatted = data.analysis
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/\n/g, '<br>');
@@ -292,9 +410,20 @@
         let recognition;
         let isListening = false;
         let isAiSpeaking = false;
+        let isWakeWordDetected = false;
         
         const conversationDiv = document.getElementById('conversation');
-        const statusSpan = document.getElementById('voiceStatus');
+        const statusSpan = document.getElementById('statusText');
+        const pulseIndicator = document.getElementById('pulseIndicator');
+
+        function updateStatus(text, isActive) {
+            statusSpan.innerText = text;
+            if (isActive) {
+                pulseIndicator.classList.remove('inactive');
+            } else {
+                pulseIndicator.classList.add('inactive');
+            }
+        }
 
         function appendMessage(sender, text) {
             const div = document.createElement('div');
@@ -308,36 +437,27 @@
             if ('speechSynthesis' in window) {
                 isAiSpeaking = true;
                 
-                // Stop listening while speaking
+                // Stop listening while speaking to prevent echo
                 if (recognition) {
                     try {
                         recognition.stop();
-                        console.log('Recognition stopped for AI speech');
-                    } catch(e) {
-                        console.log('Error stopping recognition:', e);
-                    }
+                    } catch(e) {}
                 }
 
                 window.speechSynthesis.cancel();
                 
                 const utterance = new SpeechSynthesisUtterance(text);
-                
-                // Auto-detect language (Hindi vs English)
                 const hasHindi = /[\u0900-\u097F]/.test(text);
                 utterance.lang = hasHindi ? 'hi-IN' : 'en-US';
 
                 utterance.onend = () => {
                     isAiSpeaking = false;
-                    // Resume listening with a small delay
                     setTimeout(() => {
-                        if (isListening && !isAiSpeaking && recognition) {
+                        if (isListening && recognition) {
                             try {
                                 recognition.start();
-                                console.log('Recognition restarted');
-                                statusSpan.innerText = 'Listening...';
-                            } catch (e) {
-                                console.log('Recognition start error:', e);
-                            }
+                                updateStatus(isWakeWordDetected ? 'Listening...' : 'Waiting for "Hey Jarvis"...', true);
+                            } catch (e) {}
                         }
                     }, 500); 
                 };
@@ -353,7 +473,7 @@
             ws = new WebSocket(`${protocol}//${window.location.host}/ws/voice-assistant`);
 
             ws.onopen = () => {
-                statusSpan.innerText = 'Connecting...';
+                updateStatus('Connecting...', true);
                 document.getElementById('startVoice').disabled = true;
                 document.getElementById('stopVoice').disabled = false;
                 startRecognition();
@@ -367,12 +487,12 @@
 
             ws.onerror = (error) => {
                 console.error('WebSocket Error:', error);
-                statusSpan.innerText = 'Connection Error';
+                updateStatus('Connection Error', false);
             };
 
             ws.onclose = () => {
                 stopVoice();
-                statusSpan.innerText = 'Disconnected';
+                updateStatus('Disconnected', false);
             };
         }
 
@@ -386,11 +506,12 @@
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = false;
-            recognition.lang = 'hi-IN'; // Default to Hindi
+            // Use en-IN to better catch "Hey Jarvis" mixed with Hindi/English
+            recognition.lang = 'en-IN'; 
 
             recognition.onstart = () => {
                 isListening = true;
-                statusSpan.innerText = 'Listening...';
+                updateStatus(isWakeWordDetected ? 'Listening...' : 'Waiting for "Hey Jarvis"...', true);
             };
 
             recognition.onresult = (event) => {
@@ -398,11 +519,44 @@
 
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        const transcript = event.results[i][0].transcript.trim();
-                        if (transcript) {
-                            appendMessage('User', transcript);
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                ws.send(transcript);
+                        let transcript = event.results[i][0].transcript.trim();
+                        console.log("Transcript:", transcript);
+
+                        // Wake Word Logic
+                        if (!isWakeWordDetected) {
+                            if (transcript.toLowerCase().includes('hey jarvis') || transcript.toLowerCase().includes('jarvis')) {
+                                isWakeWordDetected = true;
+                                updateStatus('Active - Listening...', true);
+                                
+                                // Play a small sound or give feedback
+                                const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/pang/pop.mp3'); 
+                                audio.play().catch(e => console.log(e));
+
+                                // If the user said more than just "Hey Jarvis", send the rest
+                                const parts = transcript.toLowerCase().split(/jarvis/);
+                                if (parts.length > 1 && parts[1].trim().length > 0) {
+                                    const command = parts[1].trim();
+                                    appendMessage('User', command);
+                                    if (ws && ws.readyState === WebSocket.OPEN) {
+                                        ws.send(command);
+                                    }
+                                } else {
+                                     // Just woke up, greet the user
+                                     speak("Hey Anand I am listening. How can I help you.");
+                                }
+                            }
+                        } else {
+                            // Already active, send everything
+                            // Check for "Stop" or "Sleep" command
+                            if (transcript.toLowerCase().includes('stop listening') || transcript.toLowerCase().includes('go to sleep')) {
+                                isWakeWordDetected = false;
+                                updateStatus('Waiting for "Hey Jarvis"...', true);
+                                speak("Going to sleep.");
+                            } else {
+                                appendMessage('User', transcript);
+                                if (ws && ws.readyState === WebSocket.OPEN) {
+                                    ws.send(transcript);
+                                }
                             }
                         }
                     }
@@ -411,20 +565,16 @@
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error', event.error);
-                if (event.error === 'no-speech') {
-                    // Ignore no-speech errors, just stay listening
-                } else {
-                    statusSpan.innerText = 'Error: ' + event.error;
+                if (event.error !== 'no-speech') {
+                    // updateStatus('Error: ' + event.error, false);
                 }
             };
 
             recognition.onend = () => {
-                if (isListening && !isAiSpeaking && ws && ws.readyState === WebSocket.OPEN) {
+                if (isListening && !isAiSpeaking) {
                     try {
                         recognition.start();
-                    } catch (e) {
-                        console.log("Already started");
-                    }
+                    } catch (e) {}
                 }
             };
 
@@ -433,9 +583,10 @@
 
         function stopVoice() {
             isListening = false;
+            isWakeWordDetected = false;
             document.getElementById('startVoice').disabled = false;
             document.getElementById('stopVoice').disabled = true;
-            statusSpan.innerText = 'Stopped';
+            updateStatus('Offline', false);
             
             if (recognition) {
                 recognition.stop();

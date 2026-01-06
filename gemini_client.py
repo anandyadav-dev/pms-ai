@@ -13,6 +13,7 @@ class GeminiClient:
             raise ValueError("GOOGLE_API_KEY environment variable not set")
         
         genai.configure(api_key=api_key)
+        # User requested gemini-2.5-flash specifically
         self.model = genai.GenerativeModel('gemini-2.5-flash')
         self.chat = self.model.start_chat(history=[
             {
