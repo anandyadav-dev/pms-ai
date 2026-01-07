@@ -5,3 +5,5 @@ google-generativeai
 python-dotenv
 websockets
 jinja2
+reportlab
+pillow
