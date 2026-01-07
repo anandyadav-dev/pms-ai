@@ -1,449 +1,682 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMS AI Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>PMS AI - Medical Assistant</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --primary-color: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg-color: #F3F4F6;
-            --card-bg: #FFFFFF;
-            --text-main: #1F2937;
-            --text-secondary: #6B7280;
-            --chat-user-bg: #4F46E5;
-            --chat-user-text: #FFFFFF;
-            --chat-ai-bg: #E5E7EB;
-            --chat-ai-text: #1F2937;
+            --bg-dark: #0f111a;
+            --bg-panel: rgba(30, 34, 48, 0.6);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --accent: #10b981;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass: blur(20px);
+        }
+
+        * {
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
         }
 
         body {
+            margin: 0;
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
+            background-color: var(--bg-dark);
             color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            line-height: 1.5;
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 25%);
         }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px 0;
-        }
-
-        h1 {
-            color: var(--primary-color);
-            font-size: 2.5rem;
-            margin: 0;
-            font-weight: 700;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            margin-top: 5px;
-        }
-
-        .grid {
+        /* Layout */
+        .app-container {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+            grid-template-columns: 380px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
         }
 
-        @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 24px;
+        /* Sidebar - Live Report */
+        .sidebar {
+            background: var(--bg-dark);
             display: flex;
             flex-direction: column;
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            overflow-y: auto;
         }
 
-        h2 {
-            color: var(--text-main);
-            margin-top: 0;
+        .brand {
             font-size: 1.25rem;
-            border-bottom: 2px solid var(--bg-color);
-            padding-bottom: 12px;
-            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.02em;
         }
 
-        /* Prescription Section */
-        .upload-area {
-            border: 2px dashed #D1D5DB;
+        .brand-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 15px;
-            transition: border-color 0.3s;
         }
 
-        .upload-area:hover {
-            border-color: var(--primary-color);
+        .report-section {
+            margin-bottom: 24px;
         }
 
-        input[type="file"] {
-            display: none;
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 12px;
         }
 
-        .file-label {
-            cursor: pointer;
-            color: var(--primary-color);
+        .data-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .data-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .data-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .data-label {
+            color: var(--text-muted);
+        }
+
+        .data-value {
+            font-weight: 500;
+            text-align: right;
+            color: var(--text-main);
+        }
+
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 500;
         }
 
-        #prescriptionResult {
-            background: #F9FAFB;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            white-space: pre-wrap;
-            font-size: 0.9rem;
-            color: var(--text-main);
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #E5E7EB;
+        .med-item {
+            border-left: 2px solid var(--accent);
+            padding-left: 12px;
+            margin-bottom: 8px;
         }
 
-        /* Voice Assistant Section */
-        #conversation {
-            flex-grow: 1;
-            height: 400px;
-            overflow-y: auto;
-            padding: 15px;
-            background: #F9FAFB;
-            border-radius: 8px;
-            border: 1px solid #E5E7EB;
-            margin-bottom: 15px;
+        .med-name {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .med-dose {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Chat Area */
+        .main-area {
+            background: #13161f;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            position: relative;
+            min-width: 0;
+            /* Fix for flexbox text overflow */
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            padding: 20px 32px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(19, 22, 31, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+            min-height: 0;
+            /* Important for scrolling in flex */
         }
 
         .message {
-            max-width: 80%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            position: relative;
-            word-wrap: break-word;
-        }
-
-        .message.user {
-            align-self: flex-end;
-            background-color: var(--chat-user-bg);
-            color: var(--chat-user-text);
-            border-bottom-right-radius: 2px;
+            max-width: 600px;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease;
         }
 
         .message.ai {
             align-self: flex-start;
-            background-color: var(--chat-ai-bg);
-            color: var(--chat-ai-text);
-            border-bottom-left-radius: 2px;
         }
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
+        .message.user {
+            align-self: flex-end;
         }
 
-        button {
-            background-color: var(--primary-color);
+        .msg-bubble {
+            padding: 16px 24px;
+            border-radius: 16px;
+            position: relative;
+        }
+
+        .ai .msg-bubble {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-top-left-radius: 4px;
+        }
+
+        .user .msg-bubble {
+            background: var(--primary);
             color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .msg-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .user .msg-role {
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
+        }
+
+        /* Control Bar */
+        .control-bar {
+            padding: 24px 32px;
+            background: rgba(19, 22, 31, 0.9);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .mic-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 500;
+            background: var(--bg-panel);
+            color: var(--text-main);
             cursor: pointer;
-            transition: background-color 0.2s;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
         }
 
-        button:hover {
-            background-color: var(--primary-hover);
+        .mic-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+            transition: all 0.3s;
         }
 
-        button:disabled {
-            background-color: #9CA3AF;
-            cursor: not-allowed;
+        .mic-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
         }
 
-        button.stop {
-            background-color: #EF4444;
-        }
-        
-        button.stop:hover {
-            background-color: #DC2626;
+        .mic-btn.active::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            animation: ripple 1.5s infinite;
         }
 
-        .status {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-left: auto;
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
         }
-        
-        /* Markdown Styles in Prescription */
-        #prescriptionResult strong {
-            color: var(--primary-color);
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* File Upload Hidden */
+        #prescriptionFile {
+            display: none;
+        }
+
+        /* Status Indicator */
+        .status-pill {
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .status-pill.visible {
+            opacity: 1;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: currentColor;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0.4;
+            }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>PMS AI Assistant</h1>
-            <div class="subtitle">Your Personal Medical & Prescription Assistant</div>
-        </header>
 
-        <div class="grid">
-            <!-- Prescription Card -->
-            <div class="card">
-                <h2>📋 Prescription Analysis</h2>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Upload a prescription image to get a detailed summary.</p>
-                
-                <div class="upload-area">
-                    <label for="prescriptionFile" class="file-label">
-                        <span id="fileName">Click to upload image</span>
-                    </label>
-                    <input type="file" id="prescriptionFile" accept="image/*" onchange="updateFileName()">
-                </div>
-                
-                <button onclick="uploadPrescription()" style="width: 100%">Analyze Prescription</button>
-                <div id="prescriptionResult">Analysis result will appear here...</div>
+<body>
+
+    <div class="app-container">
+        <!-- LEFT SIDEBAR: LIVE REPORT -->
+        <div class="sidebar">
+            <div class="brand">
+                <div class="brand-icon"></div>
+                PMS AI Assistant
             </div>
 
-            <!-- Voice Assistant Card -->
-            <div class="card">
-                <h2>🎙️ Voice Assistant</h2>
-                <div id="conversation">
-                    <div class="message ai">Hello! I am your medical assistant. You can speak to me in Hindi or English. How can I help you?</div>
+            <div class="report-section">
+                <div class="section-title">Patient Details</div>
+                <div class="data-card">
+                    <div class="data-row">
+                        <span class="data-label">Name</span>
+                        <span class="data-value" id="pName">--</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Age/Gender</span>
+                        <span class="data-value" id="pAgeGender">--</span>
+                    </div>
                 </div>
-                
-                <div class="controls">
-                    <button id="startVoice" onclick="startVoice()">Start</button>
-                    <button id="stopVoice" onclick="stopVoice()" class="stop" disabled>Stop</button>
-                    <span id="voiceStatus" class="status">Ready</span>
+            </div>
+
+            <div class="report-section">
+                <div class="section-title">Symptoms</div>
+                <div class="data-card">
+                    <div class="tag-container" id="pSymptoms">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">No symptoms recorded</span>
+                    </div>
                 </div>
+            </div>
+
+            <div class="report-section">
+                <div class="section-title">Vitals & Checkup</div>
+                <div class="data-card">
+                    <div class="data-row">
+                        <span class="data-label">Diagnosis</span>
+                        <span class="data-value" id="pDiagnosis">--</span>
+                    </div>
+                    <div style="margin-top: 12px; font-size: 0.9rem; color: var(--text-muted);" id="pCheckup">
+                        No checkup details.
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-section" style="flex: 1;">
+                <div class="section-title">Prescriptions</div>
+                <div class="data-card" style="min-height: 100px;" id="pMeds">
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">No medicines added</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="generatePDF()"
+                style="width: 100%; justify-content: center; margin-top: auto;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Generate Report
+            </button>
+        </div>
+
+        <!-- RIGHT MAIN: CHAT -->
+        <div class="main-area">
+            <div class="top-bar">
+                <div class="status-pill" id="connectionStatus">
+                    <div class="dot"></div>
+                    Live Connection
+                </div>
+                <div style="flex: 1"></div>
+                <button class="btn" onclick="document.getElementById('prescriptionFile').click()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload Prescription
+                </button>
+                <input type="file" id="prescriptionFile" accept="image/*" onchange="uploadPrescription()">
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="message ai">
+                    <span class="msg-role">AI Assistant</span>
+                    <div class="msg-bubble">
+                        Hello. I am listening. Please start the consultation.
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-bar">
+                <button class="mic-btn" id="micBtn" onclick="toggleVoice()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-mic-fill" viewBox="0 0 16 16">
+                        <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z" />
+                        <path
+                            d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5" />
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        function updateFileName() {
-            const input = document.getElementById('prescriptionFile');
-            const label = document.getElementById('fileName');
-            if (input.files && input.files[0]) {
-                label.innerText = input.files[0].name;
-            }
-        }
-
-        // --- Prescription Analysis ---
-        async function uploadPrescription() {
-            const fileInput = document.getElementById('prescriptionFile');
-            const resultDiv = document.getElementById('prescriptionResult');
-            
-            if (!fileInput.files[0]) {
-                alert('Please select a file first.');
-                return;
-            }
-
-            resultDiv.innerHTML = '<span style="color: var(--text-secondary)">Analyzing... please wait...</span>';
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            try {
-                const response = await fetch('/analyze-prescription', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                if (data.error) {
-                    resultDiv.innerText = 'Error: ' + data.error;
-                } else {
-                    // Simple markdown to HTML conversion for bold text
-                    let formatted = data.analysis
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\n/g, '<br>');
-                    resultDiv.innerHTML = formatted;
-                }
-            } catch (error) {
-                resultDiv.innerText = 'Error: ' + error.message;
-            }
-        }
-
-        // --- Voice Assistant ---
-        let ws;
-        let recognition;
+        // State
         let isListening = false;
-        let isAiSpeaking = false;
-        
-        const conversationDiv = document.getElementById('conversation');
-        const statusSpan = document.getElementById('voiceStatus');
+        let ws = null;
+        let recognition = null;
+        let patientData = {
+            patient_name: null, age: null, gender: null,
+            symptoms: [], diagnosis: null, medicines: [],
+            checkup_details: null
+        };
 
-        function appendMessage(sender, text) {
-            const div = document.createElement('div');
-            div.className = `message ${sender.toLowerCase()}`;
-            div.innerText = text;
-            conversationDiv.appendChild(div);
-            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+        // DOM Elements
+        const micBtn = document.getElementById('micBtn');
+        const chatContainer = document.getElementById('chatContainer');
+        const statusPill = document.getElementById('connectionStatus');
+
+        // --- Data Rendering ---
+        function renderData() {
+            const d = patientData;
+
+            // Details
+            document.getElementById('pName').innerText = d.patient_name || '--';
+            document.getElementById('pAgeGender').innerText =
+                `${d.age || '--'} / ${d.gender || '--'}`;
+
+            // Symptoms
+            const symContainer = document.getElementById('pSymptoms');
+            if (d.symptoms && d.symptoms.length > 0) {
+                symContainer.innerHTML = d.symptoms.map(s => `<span class="tag">${s}</span>`).join('');
+            } else {
+                symContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No symptoms recorded</span>';
+            }
+
+            // Checkup
+            document.getElementById('pDiagnosis').innerText = d.diagnosis || '--';
+            document.getElementById('pCheckup').innerText = d.checkup_details || 'No checkup details.';
+
+            // Medicines
+            const medContainer = document.getElementById('pMeds');
+            if (d.medicines && d.medicines.length > 0) {
+                medContainer.innerHTML = d.medicines.map(m => `
+                    <div class="med-item">
+                        <div class="med-name">${m.name || 'Unknown'}</div>
+                        <div class="med-dose">${m.dose || ''} • ${m.frequency || ''}</div>
+                    </div>
+                `).join('');
+            } else {
+                medContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No medicines added</span>';
+            }
         }
 
-        function speak(text) {
-            if ('speechSynthesis' in window) {
-                isAiSpeaking = true;
-                
-                // Stop listening while speaking
-                if (recognition) {
-                    try {
-                        recognition.stop();
-                        console.log('Recognition stopped for AI speech');
-                    } catch(e) {
-                        console.log('Error stopping recognition:', e);
-                    }
-                }
+        // --- Chat UI ---
+        function appendMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.innerHTML = `
+                <span class="msg-role">${role === 'user' ? 'You' : 'AI Assistant'}</span>
+                <div class="msg-bubble">${text}</div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
 
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                
-                // Auto-detect language (Hindi vs English)
-                const hasHindi = /[\u0900-\u097F]/.test(text);
-                utterance.lang = hasHindi ? 'hi-IN' : 'en-US';
-
-                utterance.onend = () => {
-                    isAiSpeaking = false;
-                    // Resume listening with a small delay
-                    setTimeout(() => {
-                        if (isListening && !isAiSpeaking && recognition) {
-                            try {
-                                recognition.start();
-                                console.log('Recognition restarted');
-                                statusSpan.innerText = 'Listening...';
-                            } catch (e) {
-                                console.log('Recognition start error:', e);
-                            }
-                        }
-                    }, 500); 
-                };
-
-                window.speechSynthesis.speak(utterance);
+        // --- Voice Logic ---
+        function toggleVoice() {
+            if (!isListening) {
+                startVoice();
+            } else {
+                stopVoice();
             }
         }
 
         function startVoice() {
-            if (isListening) return;
-
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${window.location.host}/ws/voice-assistant`);
 
             ws.onopen = () => {
-                statusSpan.innerText = 'Connecting...';
-                document.getElementById('startVoice').disabled = true;
-                document.getElementById('stopVoice').disabled = false;
+                isListening = true;
+                micBtn.classList.add('active');
+                statusPill.classList.add('visible');
                 startRecognition();
             };
 
             ws.onmessage = (event) => {
                 const text = event.data;
-                appendMessage('AI', text);
-                speak(text);
-            };
-
-            ws.onerror = (error) => {
-                console.error('WebSocket Error:', error);
-                statusSpan.innerText = 'Connection Error';
+                if (text.startsWith('DATA_UPDATE:')) {
+                    try {
+                        const update = JSON.parse(text.replace('DATA_UPDATE:', ''));
+                        patientData = { ...patientData, ...update };
+                        renderData();
+                    } catch (e) { console.error(e); }
+                } else {
+                    appendMessage('ai', text);
+                }
             };
 
             ws.onclose = () => {
                 stopVoice();
-                statusSpan.innerText = 'Disconnected';
             };
+        }
+
+        function stopVoice() {
+            isListening = false;
+            micBtn.classList.remove('active');
+            statusPill.classList.remove('visible');
+            if (ws) ws.close();
+            if (recognition) recognition.stop();
         }
 
         function startRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('Speech recognition is not supported in this browser. Try Chrome.');
+                alert('Browser not supported.');
                 return;
             }
-
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = false;
-            recognition.lang = 'hi-IN'; // Default to Hindi
-
-            recognition.onstart = () => {
-                isListening = true;
-                statusSpan.innerText = 'Listening...';
-            };
+            recognition.lang = 'en-IN';
 
             recognition.onresult = (event) => {
-                if (isAiSpeaking) return;
-
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        const transcript = event.results[i][0].transcript.trim();
-                        if (transcript) {
-                            appendMessage('User', transcript);
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                ws.send(transcript);
-                            }
+                        const text = event.results[i][0].transcript.trim();
+                        appendMessage('user', text);
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(text);
                         }
                     }
                 }
             };
 
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error', event.error);
-                if (event.error === 'no-speech') {
-                    // Ignore no-speech errors, just stay listening
-                } else {
-                    statusSpan.innerText = 'Error: ' + event.error;
-                }
-            };
-
             recognition.onend = () => {
-                if (isListening && !isAiSpeaking && ws && ws.readyState === WebSocket.OPEN) {
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        console.log("Already started");
-                    }
-                }
+                if (isListening) recognition.start();
             };
 
             recognition.start();
         }
 
-        function stopVoice() {
-            isListening = false;
-            document.getElementById('startVoice').disabled = false;
-            document.getElementById('stopVoice').disabled = true;
-            statusSpan.innerText = 'Stopped';
-            
-            if (recognition) {
-                recognition.stop();
+        // --- File Upload ---
+        async function uploadPrescription() {
+            const fileInput = document.getElementById('prescriptionFile');
+            if (!fileInput.files[0]) return;
+
+            appendMessage('ai', 'Analyzing prescription... please wait.');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/analyze-prescription', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.analysis) {
+                    appendMessage('ai', '<strong>Prescription Analysis:</strong><br>' + data.analysis.replace(/\n/g, '<br>'));
+                }
+                if (data.extracted_data) {
+                    patientData = { ...patientData, ...data.extracted_data };
+                    renderData();
+                    appendMessage('ai', '<strong>System:</strong> Patient details updated from prescription.');
+                }
+            } catch (e) {
+                appendMessage('ai', 'Error analyzing file.');
             }
-            if (ws) {
-                ws.close();
+        }
+
+        // --- PDF Generation ---
+        async function generatePDF() {
+            try {
+                const res = await fetch('/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patientData)
+                });
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Report_${patientData.patient_name || 'Patient'}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) {
+                alert('Error generating PDF');
             }
         }
     </script>
 </body>
+
 </html>
