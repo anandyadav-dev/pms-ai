@@ -1,5 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import asyncio
 import json
+from app.services.fast_extract import quick_extract
 
 router = APIRouter()
 
@@ -16,9 +18,18 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             try:
-                patient_record = ai_client.extract_patient_info(data, patient_record)
-                await websocket.send_text("DATA_UPDATE:" + json.dumps(patient_record))
+                fast = quick_extract(data, patient_record)
+                patient_record = {**patient_record, **fast}
+                await websocket.send_text("PRIORITY_UPDATE:" + json.dumps(fast))
             except Exception:
                 pass
+            async def ai_task(t):
+                try:
+                    res = ai_client.extract_patient_info(t, patient_record)
+                    patient_record.update(res or {})
+                    await websocket.send_text("DATA_UPDATE:" + json.dumps(patient_record))
+                except Exception:
+                    pass
+            asyncio.create_task(ai_task(data))
     except WebSocketDisconnect:
         pass

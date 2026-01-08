@@ -84,15 +84,17 @@ class OpenAIClient:
             "symptoms": [],
             "diagnosis": None,
             "medicines": [],
-            "notes": []
+            "notes": [],
+            "medical_tests": []
         }
         base = {**schema, **(current or {})}
         prompt = (
             "Extract structured medical details from the user's input. "
             "Return ONLY valid JSON matching this schema keys: "
-            "patient_name, age, gender, doctor_name, checkup_date, checkup_details, symptoms, diagnosis, medicines, notes. "
+            "patient_name, age, gender, doctor_name, checkup_date, checkup_details, symptoms, diagnosis, medicines, medical_tests, notes. "
             "symptoms: array of strings. "
             "medicines: array of objects with keys: name, dose, frequency. "
+            "medical_tests: array of objects with keys: name, optional details. "
             "If a field is not mentioned, leave as null or empty array. "
             "User input: "
             + text
@@ -131,6 +133,18 @@ class OpenAIClient:
                             if not exists:
                                 current_meds.append(new_med)
                         merged[k] = current_meds
+                    elif k == "medical_tests":
+                        current_tests = merged[k]
+                        for nt in data[k]:
+                            exists = False
+                            for ct in current_tests:
+                                if ct.get("name") and nt.get("name") and ct.get("name").lower() == nt.get("name").lower():
+                                    ct.update(nt)
+                                    exists = True
+                                    break
+                            if not exists:
+                                current_tests.append(nt)
+                        merged[k] = current_tests
                     else:
                         current_list = merged[k]
                         for item in data[k]:

@@ -427,6 +427,15 @@
                 </div>
             </div>
 
+            <div class="report-section">
+                <div class="section-title">Medical Tests</div>
+                <div class="data-card">
+                    <div class="tag-container" id="pTests">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">No medical tests added</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="report-section" style="flex: 1;">
                 <div class="section-title">Prescriptions</div>
                 <div class="data-card" style="min-height: 100px;" id="pMeds">
@@ -495,7 +504,7 @@
         let recognition = null;
         let patientData = {
             patient_name: null, age: null, gender: null,
-            symptoms: [], diagnosis: null, medicines: [],
+            symptoms: [], diagnosis: null, medicines: [], medical_tests: [],
             checkup_details: null
         };
 
@@ -525,6 +534,13 @@
             document.getElementById('pDiagnosis').innerText = d.diagnosis || '--';
             document.getElementById('pCheckup').innerText = d.checkup_details || 'No checkup details.';
 
+            const testContainer = document.getElementById('pTests');
+            if (d.medical_tests && d.medical_tests.length > 0) {
+                testContainer.innerHTML = d.medical_tests.map(t => `<span class="tag">${(t && t.name) ? t.name : (t || '')}</span>`).join('');
+            } else {
+                testContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No medical tests added</span>';
+            }
+
             // Medicines
             const medContainer = document.getElementById('pMeds');
             if (d.medicines && d.medicines.length > 0) {
@@ -537,6 +553,45 @@
             } else {
                 medContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No medicines added</span>';
             }
+        }
+
+        function mergePatientData(base, update) {
+            const out = { ...base };
+            ['patient_name','age','gender','diagnosis','checkup_details','doctor_name','checkup_date'].forEach(k => {
+                if (update[k] !== undefined && update[k] !== null && update[k] !== '') out[k] = update[k];
+            });
+            if (Array.isArray(update.symptoms)) {
+                const set = new Set([...(out.symptoms || []), ...update.symptoms]);
+                out.symptoms = Array.from(set);
+            }
+            if (Array.isArray(update.medicines)) {
+                const curr = out.medicines || [];
+                update.medicines.forEach(nm => {
+                    if (!nm || !nm.name) return;
+                    const idx = curr.findIndex(m => m.name && m.name.toLowerCase() === nm.name.toLowerCase());
+                    if (idx >= 0) {
+                        curr[idx] = { ...curr[idx], ...nm };
+                    } else {
+                        curr.push(nm);
+                    }
+                });
+                out.medicines = curr;
+            }
+            if (Array.isArray(update.medical_tests)) {
+                const currT = out.medical_tests || [];
+                update.medical_tests.forEach(nt => {
+                    const name = (typeof nt === 'string') ? nt : nt.name;
+                    if (!name) return;
+                    const idx = currT.findIndex(t => t.name && t.name.toLowerCase() === name.toLowerCase());
+                    if (idx >= 0) {
+                        currT[idx] = { ...currT[idx], ...(typeof nt === 'string' ? { name } : nt) };
+                    } else {
+                        currT.push(typeof nt === 'string' ? { name } : nt);
+                    }
+                });
+                out.medical_tests = currT;
+            }
+            return out;
         }
 
         // --- Chat UI ---
@@ -573,10 +628,16 @@
 
             ws.onmessage = (event) => {
                 const text = event.data;
-                if (text.startsWith('DATA_UPDATE:')) {
+                if (text.startsWith('PRIORITY_UPDATE:')) {
+                    try {
+                        const update = JSON.parse(text.replace('PRIORITY_UPDATE:', ''));
+                        patientData = mergePatientData(patientData, update);
+                        renderData();
+                    } catch (e) { console.error(e); }
+                } else if (text.startsWith('DATA_UPDATE:')) {
                     try {
                         const update = JSON.parse(text.replace('DATA_UPDATE:', ''));
-                        patientData = { ...patientData, ...update };
+                        patientData = mergePatientData(patientData, update);
                         renderData();
                     } catch (e) { console.error(e); }
                 } else {

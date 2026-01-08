@@ -38,6 +38,32 @@ def generate_pdf(body: dict) -> bytes:
     story.append(Spacer(1, 5))
     story.append(Paragraph(f"<b>Checkup Details:</b> {body.get('checkup_details') or 'Routine checkup performed.'}", styles['Normal']))
     story.append(Spacer(1, 20))
+    story.append(Paragraph("Medical Tests", section_header_style))
+    tests = body.get("medical_tests") or []
+    if tests:
+        test_data = [['Test Name', 'Details']]
+        for t in tests:
+            if isinstance(t, dict):
+                test_data.append([Paragraph(t.get("name") or "Unknown", styles['Normal']), t.get("details") or "--"])
+            else:
+                test_data.append([Paragraph(str(t), styles['Normal']), "--"])
+        t_tests = Table(test_data, colWidths=[3.5*inch, 3.5*inch])
+        t_tests.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#3498db')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 10),
+            ('BOTTOMPADDING', (0,0), (-1,0), 10),
+            ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f8f9fa')),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#bdc3c7')),
+            ('TOPPADDING', (0,0), (-1,-1), 8),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8)
+        ]))
+        story.append(t_tests)
+    else:
+        story.append(Paragraph("No medical tests recommended.", styles['Normal']))
+    story.append(Spacer(1, 20))
     story.append(Paragraph("Prescription / Rx", section_header_style))
     medicines = body.get("medicines") or []
     if medicines:
