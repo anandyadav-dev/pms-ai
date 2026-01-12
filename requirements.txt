@@ -1,9 +1,11 @@
 fastapi
 uvicorn
 python-multipart
+openai
 google-generativeai
 python-dotenv
 websockets
 jinja2
 reportlab
 pillow
+pydantic

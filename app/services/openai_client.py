@@ -5,6 +5,8 @@ import json
 from dotenv import load_dotenv
 from PIL import Image
 from openai import OpenAI
+import asyncio
+from typing import AsyncGenerator
 
 load_dotenv()
 
@@ -13,7 +15,9 @@ class OpenAIClient:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable not set")
+
         self.client = OpenAI(api_key=api_key)
+
         self.system_prompt = (
             "You are a helpful medical assistant. "
             "If the user speaks in Hindi, respond in Hindi. "
@@ -21,17 +25,20 @@ class OpenAIClient:
             "Always detect the user's language and match it. "
             "This is not a diagnosis. Always consult a qualified doctor."
         )
+
         self.chat_history = [
             {"role": "system", "content": self.system_prompt}
         ]
 
-    def analyze_prescription(self, image_bytes: bytes) -> str:
+    async def analyze_prescription_stream(self, image_bytes: bytes) -> AsyncGenerator[str, None]:
         image = Image.open(io.BytesIO(image_bytes))
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         image_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
         prompt = """
             Analyze this prescription image.
+
             Provide:
             1. Patient Name (if visible)
             2. Doctor Name (if visible)
@@ -41,8 +48,57 @@ class OpenAIClient:
             6. Contraindications
             Format in Markdown.
         """
+        model = os.getenv("OPENAI_MODEL", "gpt-4-vision-preview")
+        if not model:
+            raise ValueError("OPENAI_MODEL environment variable not set")
+        
         response = self.client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL"),
+            model=model,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=800,
+            stream=True
+        )
+
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+
+    def analyze_prescription(self, image_bytes: bytes) -> str:
+        image = Image.open(io.BytesIO(image_bytes))
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        image_base64 = base64.b64encode(buffered.getvalue()).decode()
+        prompt = """
+            Analyze this prescription image.
+
+            Provide:
+            1. Patient Name (if visible)
+            2. Doctor Name (if visible)
+            3. Date
+            4. Medicines & dosage
+            5. Instructions
+            6. Contraindications
+            Format in Markdown.
+        """
+        model = os.getenv("OPENAI_MODEL", "gpt-4-vision-preview")
+        if not model:
+            raise ValueError("OPENAI_MODEL environment variable not set")
+        response = self.client.chat.completions.create(
+            model=model,
             messages=[
                 {"role": "system", "content": self.system_prompt},
                 {
@@ -62,10 +118,31 @@ class OpenAIClient:
         )
         return response.choices[0].message.content
 
+    async def chat_response_stream(self, text: str) -> AsyncGenerator[str, None]:
+        self.chat_history.append({"role": "user", "content": text})
+        model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+        
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=self.chat_history,
+            max_tokens=500,
+            stream=True
+        )
+
+        full_response = ""
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                full_response += content
+                yield content
+        
+        self.chat_history.append({"role": "assistant", "content": full_response})
+
     def chat_response(self, text: str) -> str:
         self.chat_history.append({"role": "user", "content": text})
+        model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         response = self.client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL"),
+            model=model,
             messages=self.chat_history,
             max_tokens=500
         )
@@ -100,7 +177,7 @@ class OpenAIClient:
             + text
         )
         resp = self.client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL"),
+            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             messages=[
                 {"role": "system", "content": "You output ONLY JSON without extra text."},
                 {"role": "user", "content": prompt}

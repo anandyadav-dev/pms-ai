@@ -126,7 +126,8 @@
         .tag-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 25px;
+            padding-left: 10px;
         }
 
         .tag {
@@ -152,6 +153,75 @@
         .med-dose {
             font-size: 0.85rem;
             color: var(--text-muted);
+        }
+
+        /* Voice Assistant */
+        .voice-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .voice-controls button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        .voice-controls button:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+        .mic-btn.listening {
+            background: #e74c3c !important;
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        /* Loader Styles */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        .loader-content {
+            text-align: center;
+            color: white;
+        }
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loader-content p {
+            font-size: 18px;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         /* Main Chat Area */
@@ -349,16 +419,14 @@
         /* Status Indicator */
         .status-pill {
             padding: 6px 12px;
-            border-radius: 20px;
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--accent);
+            border-radius: 10px;
+            color: white;
             font-size: 0.85rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 8px;
-            opacity: 0;
-            transition: opacity 0.3s;
+            gap: 6px;
+            transition: background-color 0.3s ease;
         }
 
         .status-pill.visible {
@@ -461,7 +529,6 @@
             <div class="top-bar">
                 <div class="status-pill" id="connectionStatus">
                     <div class="dot"></div>
-                    Live Connection
                 </div>
                 <div style="flex: 1"></div>
                 <button class="btn" onclick="document.getElementById('prescriptionFile').click()">
@@ -493,6 +560,13 @@
                             d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5" />
                     </svg>
                 </button>
+                <!-- <button class="mic-btn" id="reconnectBtn" onclick="reconnectVoiceAssistant()" title="Reconnect voice assistant">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                </button> -->
             </div>
         </div>
     </div>
@@ -503,18 +577,69 @@
         let ws = null;
         let recognition = null;
         let patientData = {
-            patient_name: null, age: null, gender: null,
-            symptoms: [], diagnosis: null, medicines: [], medical_tests: [],
-            checkup_details: null
+            patient_name: null,
+            age: null,
+            gender: null,
+            doctor_name: null,
+            checkup_date: null,
+            checkup_details: null,
+            symptoms: [],
+            diagnosis: null,
+            medicines: [],
+            medical_tests: [],
+            notes: []
         };
+        let streamingMessage = null;
+        let streamingDiv = null;
+        let currentRealTimeDiv = null;
+        let collectedText = '';
+        let sendInterval = null;
 
         // DOM Elements
         const micBtn = document.getElementById('micBtn');
         const chatContainer = document.getElementById('chatContainer');
         const statusPill = document.getElementById('connectionStatus');
 
+        // --- Voice Logic ---
+        function toggleVoice() {
+            if (!isListening) {
+                startVoice();
+            } else {
+                stopVoice();
+            }
+        }
+
+        // --- Streaming Response Handlers ---
+        function handleStreamingResponse(chunk) {
+            if (!streamingMessage) {
+                streamingMessage = '';
+                streamingDiv = document.createElement('div');
+                streamingDiv.className = 'message ai';
+                streamingDiv.innerHTML = `
+                    <span class="msg-role">AI Assistant</span>
+                    <div class="msg-bubble">${streamingMessage}</div>
+                `;
+                chatContainer.appendChild(streamingDiv);
+            }
+            
+            streamingMessage += chunk;
+            if (streamingDiv) {
+                streamingDiv.querySelector('.msg-bubble').innerHTML = streamingMessage.replace(/\n/g, '<br>');
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        function finalizeStreamingResponse() {
+            if (streamingDiv) {
+                streamingDiv.querySelector('.msg-bubble').innerHTML += '<br><br><em>✓ Response Complete</em>';
+            }
+            streamingMessage = null;
+            streamingDiv = null;
+        }
+
         // --- Data Rendering ---
         function renderData() {
+            console.log('Rendering data:', patientData);
             const d = patientData;
 
             // Details
@@ -522,37 +647,91 @@
             document.getElementById('pAgeGender').innerText =
                 `${d.age || '--'} / ${d.gender || '--'}`;
 
-            // Symptoms
+            // Symptoms - Ensure English
             const symContainer = document.getElementById('pSymptoms');
             if (d.symptoms && d.symptoms.length > 0) {
-                symContainer.innerHTML = d.symptoms.map(s => `<span class="tag">${s}</span>`).join('');
+                const englishSymptoms = d.symptoms.map(symptom => {
+                    // Convert to English if needed
+                    if (typeof symptom === 'string') {
+                        // Basic Hindi to English mapping
+                        const hindiToEnglish = {
+                            'बुखार': 'fever',
+                            'खांसी': 'cough',
+                            'सिरदर्द': 'headache',
+                            'पेट दर्द': 'chest pain',
+                            'उल्टी': 'vomiting',
+                            'पेट में दर्द': 'stomach pain'
+                        };
+                        return hindiToEnglish[symptom] || symptom;
+                    }
+                    return symptom;
+                });
+                
+                symContainer.innerHTML = englishSymptoms.map(symptom => 
+                    `<li>${symptom}</li>`
+                ).join('');
             } else {
-                symContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No symptoms recorded</span>';
+                symContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No symptoms added</span>';
             }
 
-            // Checkup
+            // Diagnosis
             document.getElementById('pDiagnosis').innerText = d.diagnosis || '--';
-            document.getElementById('pCheckup').innerText = d.checkup_details || 'No checkup details.';
 
-            const testContainer = document.getElementById('pTests');
-            if (d.medical_tests && d.medical_tests.length > 0) {
-                testContainer.innerHTML = d.medical_tests.map(t => `<span class="tag">${(t && t.name) ? t.name : (t || '')}</span>`).join('');
-            } else {
-                testContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No medical tests added</span>';
-            }
-
-            // Medicines
+            // Medicines - Ensure English names
             const medContainer = document.getElementById('pMeds');
             if (d.medicines && d.medicines.length > 0) {
-                medContainer.innerHTML = d.medicines.map(m => `
+                const englishMeds = d.medicines.map(med => {
+                    const medName = med.name || 'Unknown';
+                    // Basic Hindi to English mapping for medicines
+                    const hindiToEnglish = {
+                        'दवा': 'Dolo',
+                        'पैरासिटमॉल': 'Paracetamol',
+                        'एंटीबायोटिक': 'Antibiotic'
+                    };
+                    return {
+                        ...med,
+                        name: hindiToEnglish[medName] || medName
+                    };
+                });
+                
+                medContainer.innerHTML = englishMeds.map(med => `
                     <div class="med-item">
-                        <div class="med-name">${m.name || 'Unknown'}</div>
-                        <div class="med-dose">${m.dose || ''} • ${m.frequency || ''}</div>
+                        <div class="med-name">${med.name || 'Unknown'}</div>
+                        <div class="med-dose">${med.dose || ''} • ${med.frequency || ''}</div>
                     </div>
                 `).join('');
             } else {
                 medContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No medicines added</span>';
             }
+            
+            // Tests - Ensure English names
+            const testContainer = document.getElementById('pTests');
+            if (d.medical_tests && d.medical_tests.length > 0) {
+                const englishTests = d.medical_tests.map(test => {
+                    const testName = test.name || 'Unknown';
+                    // Basic Hindi to English mapping for tests
+                    const hindiToEnglish = {
+                        'खून की जांच': 'blood test',
+                        'एक्सरे': 'X-ray',
+                        'अल्ट्रासाउंड': 'ultrasound'
+                    };
+                    return {
+                        ...test,
+                        name: hindiToEnglish[testName] || testName
+                    };
+                });
+                
+                testContainer.innerHTML = englishTests.map(test => `
+                    <div class="test-item">
+                        <div class="test-name">${test.name || 'Unknown'}</div>
+                        <div class="test-details">${test.details || '--'}</div>
+                    </div>
+                `).join('');
+            } else {
+                testContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">No tests prescribed</span>';
+            }
+            
+            console.log('Data rendered successfully');
         }
 
         function mergePatientData(base, update) {
@@ -616,76 +795,250 @@
         }
 
         function startVoice() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws/voice-assistant`);
-
-            ws.onopen = () => {
-                isListening = true;
-                micBtn.classList.add('active');
-                statusPill.classList.add('visible');
-                startRecognition();
-            };
-
-            ws.onmessage = (event) => {
-                const text = event.data;
-                if (text.startsWith('PRIORITY_UPDATE:')) {
-                    try {
-                        const update = JSON.parse(text.replace('PRIORITY_UPDATE:', ''));
-                        patientData = mergePatientData(patientData, update);
-                        renderData();
-                    } catch (e) { console.error(e); }
-                } else if (text.startsWith('DATA_UPDATE:')) {
-                    try {
-                        const update = JSON.parse(text.replace('DATA_UPDATE:', ''));
-                        patientData = mergePatientData(patientData, update);
-                        renderData();
-                    } catch (e) { console.error(e); }
-                } else {
-                    appendMessage('ai', text);
+            // Check if WebSocket is connected, if not, try to connect first
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.log('WebSocket not connected, attempting to connect...');
+                
+                // Try to reconnect first
+                if (ws) {
+                    ws.close();
                 }
-            };
+                connectionRetryCount = 0;
+                initVoiceAssistant();
+                
+                // Wait a moment for connection, then start voice
+                setTimeout(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        actuallyStartVoice();
+                    } else {
+                        appendMessage('ai', 'Failed to connect voice assistant. Please try the reconnect button.');
+                    }
+                }, 1000);
+                return;
+            }
+            
+            actuallyStartVoice();
+        }
 
-            ws.onclose = () => {
-                stopVoice();
-            };
+        function actuallyStartVoice() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                appendMessage('ai', 'Voice assistant not connected. Please refresh the page or click reconnect.');
+                return;
+            }
+            if (!recognition) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-IN';
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    statusPill.textContent = "Listening...";
+                    statusPill.style.backgroundColor = "#ffc107";
+                    collectedText = '';
+                    
+                    // Start 5-second interval sending
+                    sendInterval = setInterval(() => {
+                        if (collectedText.trim()) {
+                            // Clear real-time message first
+                            if (currentRealTimeDiv) {
+                                currentRealTimeDiv.remove();
+                                currentRealTimeDiv = null;
+                            }
+                            // Send collected text as proper user message
+                            appendMessage('user', collectedText.trim());
+                            ws.send(collectedText.trim());
+                            // Reset collected text
+                            collectedText = '';
+                        }
+                    }, 5000);
+                };
+
+                recognition.onresult = (event) => {
+                    let interimText = '';
+                    let finalText = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        if (result.isFinal) {
+                            finalText += result[0].transcript.trim() + ' ';
+                        } else {
+                            interimText += result[0].transcript;
+                        }
+                    }
+                    
+                    // Collect text for 5-second intervals
+                    if (finalText.trim()) {
+                        collectedText += finalText;
+                    }
+                    
+                    // Only show real-time interim text, don't create duplicate messages
+                    if (interimText.trim()) {
+                        updateRealTimeMessage(interimText.trim());
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    appendMessage('ai', 'Voice recognition error. Please try again.');
+                    stopVoice();
+                };
+
+                recognition.onend = () => {
+                    if (isListening) {
+                        // Auto-restart if still listening
+                        recognition.start();
+                    }
+                };
+            }
+            recognition.start();
+        }
+
+        function updateRealTimeMessage(text) {
+            if (!currentRealTimeDiv) {
+                currentRealTimeDiv = document.createElement('div');
+                currentRealTimeDiv.className = 'message user';
+                currentRealTimeDiv.innerHTML = `
+                    <span class="msg-role">You</span>
+                    <div class="msg-bubble">${text}</div>
+                `;
+                chatContainer.appendChild(currentRealTimeDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                currentRealTimeDiv.querySelector('.msg-bubble').textContent = text;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
         }
 
         function stopVoice() {
             isListening = false;
-            micBtn.classList.remove('active');
-            statusPill.classList.remove('visible');
-            if (ws) ws.close();
-            if (recognition) recognition.stop();
+            micBtn.classList.remove('listening');
+            statusPill.textContent = "Connected";
+            statusPill.style.backgroundColor = "#28a745";
+            if (recognition) {
+                recognition.stop();
+            }
+            // Clear the 5-second interval
+            if (sendInterval) {
+                clearInterval(sendInterval);
+                sendInterval = null;
+            }
+            // Send any remaining collected text
+            if (collectedText.trim()) {
+                appendMessage('user', collectedText.trim());
+                ws.send(collectedText.trim());
+                collectedText = '';
+            }
+            // Clear real-time message
+            if (currentRealTimeDiv) {
+                currentRealTimeDiv = null;
+            }
         }
 
-        function startRecognition() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('Browser not supported.');
+        // --- Voice Assistant Setup ---
+        let connectionRetryCount = 0;
+        const maxRetries = 3;
+
+        function initVoiceAssistant() {
+            const wsUrl = `ws://${window.location.host}/ws/voice-assistant`;
+            console.log(`Connecting to WebSocket at: ${wsUrl}`);
+            console.log(`Current host: ${window.location.host}`);
+            
+            try {
+                ws = new WebSocket(wsUrl);
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                statusPill.textContent = "Connection Failed";
+                statusPill.style.backgroundColor = "#dc3545";
+                appendMessage('ai', 'Failed to create WebSocket connection. Please check server.');
                 return;
             }
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            recognition.lang = 'en-IN';
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected successfully');
+                statusPill.textContent = "Connected";
+                statusPill.style.backgroundColor = "#28a745";
+                appendMessage('ai', 'Voice assistant connected.');
+                connectionRetryCount = 0; // Reset retry count on successful connection
+            };
 
-            recognition.onresult = (event) => {
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        const text = event.results[i][0].transcript.trim();
-                        appendMessage('user', text);
-                        if (ws && ws.readyState === WebSocket.OPEN) {
-                            ws.send(text);
-                        }
+            ws.onmessage = (event) => {
+                const text = event.data;
+                console.log('WebSocket message received:', text);
+                
+                if (text.startsWith('PRIORITY_UPDATE:')) {
+                    try {
+                        const update = JSON.parse(text.replace('PRIORITY_UPDATE:', ''));
+                        console.log('Priority update:', update);
+                        patientData = mergePatientData(patientData, update);
+                        renderData();
+                    } catch (e) { console.error('Priority update error:', e); }
+                } else if (text.startsWith('DATA_UPDATE:')) {
+                    try {
+                        const update = JSON.parse(text.replace('DATA_UPDATE:', ''));
+                        console.log('Data update:', update);
+                        patientData = mergePatientData(patientData, update);
+                        renderData();
+                    } catch (e) { console.error('Data update error:', e); }
+                } else if (text.startsWith('STREAM:')) {
+                    // Handle streaming response - don't append as regular message
+                    const chunk = text.replace('STREAM:', '');
+                    handleStreamingResponse(chunk);
+                } else if (text.startsWith('AI_RESPONSE:')) {
+                    // Complete AI response - append as single message
+                    const aiResponse = text.replace('AI_RESPONSE:', '');
+                    // Clear any existing streaming message first
+                    if (streamingDiv) {
+                        streamingDiv.remove();
+                        streamingDiv = null;
+                        streamingMessage = '';
                     }
+                    appendMessage('ai', aiResponse);
+                } else if (text.startsWith('STREAM_COMPLETE:')) {
+                    // Streaming finished - don't append as regular message
+                    finalizeStreamingResponse();
+                } else {
+                    // Only append non-streaming messages
+                    appendMessage('ai', text);
                 }
             };
 
-            recognition.onend = () => {
-                if (isListening) recognition.start();
+            ws.onclose = (event) => {
+                console.log('WebSocket closed:', event);
+                console.log('Close code:', event.code, 'Close reason:', event.reason);
+                stopVoice();
+                // Don't show disconnected status - only show connected/listening
+                
+                // Auto-retry connection
+                if (connectionRetryCount < maxRetries) {
+                    connectionRetryCount++;
+                    console.log(`Attempting to reconnect... (${connectionRetryCount}/${maxRetries})`);
+                    setTimeout(() => {
+                        appendMessage('ai', `Reconnecting... (${connectionRetryCount}/${maxRetries})`);
+                        initVoiceAssistant();
+                    }, 2000);
+                } else {
+                    appendMessage('ai', 'Voice assistant disconnected. Please refresh the page.');
+                }
             };
 
-            recognition.start();
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusPill.textContent = "Connection Error";
+                statusPill.style.backgroundColor = "#dc3545";
+                appendMessage('ai', 'WebSocket connection error. Please check if server is running on port 8000.');
+            };
+        }
+
+        // Manual reconnection function
+        function reconnectVoiceAssistant() {
+            if (ws) {
+                ws.close();
+            }
+            connectionRetryCount = 0;
+            appendMessage('ai', 'Attempting to reconnect voice assistant...');
+            initVoiceAssistant();
         }
 
         // --- File Upload ---
@@ -695,6 +1048,102 @@
 
             appendMessage('ai', 'Analyzing prescription... please wait.');
 
+            // Try streaming first, fallback to regular if not supported
+            try {
+                await uploadPrescriptionStream();
+            } catch (e) {
+                console.log('Streaming failed, falling back to regular upload:', e);
+                await uploadPrescriptionRegular();
+            }
+        }
+
+        async function uploadPrescriptionStream() {
+            const fileInput = document.getElementById('prescriptionFile');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            // Create streaming message
+            let streamingMessage = null;
+            let messageDiv = null;
+
+            const response = await fetch('/analyze-prescription-stream', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Stream request failed');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        
+                        if (data === '[DONE]') {
+                            // Stream complete
+                            if (streamingMessage) {
+                                streamingMessage += '\n\n<strong>✓ Analysis Complete</strong>';
+                                messageDiv.querySelector('.msg-bubble').innerHTML = streamingMessage.replace(/\n/g, '<br>');
+                            }
+                            break;
+                        }
+                        
+                        if (data.startsWith('[EXTRACTED_DATA]')) {
+                            // Handle extracted patient data
+                            try {
+                                const extractedData = JSON.parse(data.replace('[EXTRACTED_DATA]', ''));
+                                console.log('Received extracted data from stream:', extractedData);
+                                if (extractedData && Object.keys(extractedData).length > 0) {
+                                    patientData = { ...patientData, ...extractedData };
+                                    console.log('Updated patientData from stream:', patientData);
+                                    renderData();
+                                    appendMessage('ai', '<strong>System:</strong> Patient details updated from prescription.');
+                                }
+                            } catch (e) {
+                                console.error('Failed to parse extracted data:', e);
+                            }
+                            break;
+                        }
+                        
+                        // Initialize streaming message
+                        if (!streamingMessage) {
+                            streamingMessage = '<strong>Prescription Analysis (Streaming):</strong><br>';
+                            messageDiv = document.createElement('div');
+                            messageDiv.className = 'message ai';
+                            messageDiv.innerHTML = `
+                                <span class="msg-role">AI Assistant</span>
+                                <div class="msg-bubble">${streamingMessage}</div>
+                            `;
+                            chatContainer.appendChild(messageDiv);
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                        
+                        streamingMessage += data;
+                        
+                        // Update message in real-time
+                        if (messageDiv) {
+                            messageDiv.querySelector('.msg-bubble').innerHTML = streamingMessage.replace(/\n/g, '<br>');
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }
+                }
+            }
+
+            // No need for regular upload - data is extracted from stream
+        }
+
+        async function uploadPrescriptionRegular(showAnalysis = true) {
+            const fileInput = document.getElementById('prescriptionFile');
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
@@ -704,13 +1153,17 @@
                     body: formData
                 });
                 const data = await res.json();
-                if (data.analysis) {
+                if (data.analysis && showAnalysis) {
                     appendMessage('ai', '<strong>Prescription Analysis:</strong><br>' + data.analysis.replace(/\n/g, '<br>'));
                 }
                 if (data.extracted_data) {
+                    console.log('Received extracted_data:', data.extracted_data);
                     patientData = { ...patientData, ...data.extracted_data };
+                    console.log('Updated patientData:', patientData);
                     renderData();
-                    appendMessage('ai', '<strong>System:</strong> Patient details updated from prescription.');
+                    if (showAnalysis) {
+                        appendMessage('ai', '<strong>System:</strong> Patient details updated from prescription.');
+                    }
                 }
             } catch (e) {
                 appendMessage('ai', 'Error analyzing file.');
@@ -722,19 +1175,27 @@
             try {
                 const res = await fetch('/generate-report', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(patientData)
                 });
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Report_${patientData.patient_name || 'Patient'}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
+                
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Report_${patientData.patient_name || 'Patient'}_${new Date().toISOString().slice(0,10)}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    appendMessage('ai', '✅ Medical report generated and downloaded successfully!');
+                } else {
+                    appendMessage('ai', '❌ Failed to generate report. Please try again.');
+                }
             } catch (e) {
-                alert('Error generating PDF');
+                appendMessage('ai', '❌ Error generating report.');
             }
         }
     </script>
